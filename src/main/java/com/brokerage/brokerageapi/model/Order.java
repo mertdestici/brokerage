@@ -1,5 +1,6 @@
 package com.brokerage.brokerageapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,10 +21,12 @@ public class Order {
     private Long id;
     @ManyToOne
     @JoinColumn(name = "customer_id")
+    @JsonIgnore
     private Customer customer;
 
     @ManyToOne
     @JoinColumn(name = "asset_id")
+    @JsonIgnore
     private Asset asset;
 
     @Enumerated(EnumType.STRING)

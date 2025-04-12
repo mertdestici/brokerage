@@ -23,6 +23,8 @@ public class AssetController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public List<Asset> getAssets(@RequestParam Long customerId, @AuthenticationPrincipal UserDetails user) {
-        return assetService.getAssetsForCustomer(customerId);
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return assetService.getAssetsForCustomer(customerId, user.getUsername(), isAdmin);
     }
 }

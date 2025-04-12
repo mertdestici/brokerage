@@ -14,11 +14,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class CustomerDetailsServiceImpl implements UserDetailsService {
+public class CustomerService implements UserDetailsService {
 
     private final CustomerRepository customerRepository;
 
-    public CustomerDetailsServiceImpl(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
 

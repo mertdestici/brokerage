@@ -1,23 +1,19 @@
 package com.brokerage.brokerageapi.service;
 
-import com.brokerage.brokerageapi.model.Asset;
-import com.brokerage.brokerageapi.model.Order;
-import com.brokerage.brokerageapi.model.OrderSide;
-import com.brokerage.brokerageapi.model.OrderStatus;
-import com.brokerage.brokerageapi.repository.AssetRepository;
-import com.brokerage.brokerageapi.repository.OrderRepository;
+import com.brokerage.brokerageapi.model.*;
+import com.brokerage.brokerageapi.repository.*;
 import com.brokerage.brokerageapi.request.OrderRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 public class OrderServiceTest {
@@ -27,27 +23,57 @@ public class OrderServiceTest {
     @Mock
     private AssetRepository assetRepository;
     @Mock
-    private AssetService assetService;
+    private CustomerRepository customerRepository;
     @InjectMocks
     private OrderService orderService;
 
-    @Test
-    void createOrder_withSufficientTRY_shouldSucceed() {
-        OrderRequest request = new OrderRequest("cust1", "AAPL", OrderSide.BUY, 2, 50);
+    private Customer testCustomer;
+    private Asset tryAsset;
 
-        Asset tryAsset = new Asset();
+
+    @BeforeEach
+    void setup() {
+        testCustomer = new Customer();
+        testCustomer.setId(1L);
+        testCustomer.setUsername("user1");
+
+        tryAsset = new Asset();
+        tryAsset.setCustomer(testCustomer);
         tryAsset.setAssetName("TRY");
-        tryAsset.setCustomerId("cust1");
-        tryAsset.setUsableSize(200);
+        tryAsset.setSize(10000L);
+        tryAsset.setUsableSize(10000L);
+    }
 
-        when(assetService.validateAssetBalance(request)).thenReturn(tryAsset);
-        //when(assetRepository.findByCustomerIdAndAssetName("cust1", "TRY")).thenReturn(Optional.of(tryAsset));
+    @Test
+    void testCreateBuyOrderWithSufficientBalance() {
+        OrderRequest request = new OrderRequest(1L, "TRY", OrderSide.BUY, 10L, 100L);
+
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
+        when(assetRepository.findByCustomerAndAssetName(eq(testCustomer), eq("TRY"))).thenReturn(Optional.of(tryAsset));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Order createdOrder = orderService.createOrder(request);
+        Order result = orderService.createOrder(request);
 
-        assertEquals(OrderStatus.PENDING, createdOrder.getStatus());
+        assertNotNull(result);
+        assertEquals(OrderStatus.PENDING, result.getStatus());
+        assertEquals(testCustomer, result.getCustomer());
+        verify(assetRepository).save(any());
         verify(orderRepository).save(any());
+    }
+
+    @Test
+    void testCreateOrderWithInsufficientBalance() {
+        tryAsset.setUsableSize(100L);
+        OrderRequest request = new OrderRequest(1L, "TRY", OrderSide.BUY, 10L, 100L);
+
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(testCustomer));
+        when(assetRepository.findByCustomerAndAssetName(eq(testCustomer), eq("TRY"))).thenReturn(Optional.of(tryAsset));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+            orderService.createOrder(request);
+        });
+
+        assertTrue(ex.getMessage().contains("Not enough asset balance to place the order."));
     }
 }
 

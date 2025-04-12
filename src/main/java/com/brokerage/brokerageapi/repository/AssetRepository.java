@@ -12,5 +12,5 @@ import java.util.List;
 @Repository
 public interface AssetRepository extends JpaRepository<Asset, Long> {
     Optional<Asset> findByCustomerAndAssetName(Customer customer, String assetName);
-    List<Asset> findByCustomerId(Long customerId);
+    List<Asset> findByCustomer(Customer customer);
 }

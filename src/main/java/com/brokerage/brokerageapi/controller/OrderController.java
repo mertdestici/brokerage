@@ -1,9 +1,11 @@
 package com.brokerage.brokerageapi.controller;
 
 import com.brokerage.brokerageapi.model.Order;
+import com.brokerage.brokerageapi.model.OrderResponse;
 import com.brokerage.brokerageapi.request.OrderRequest;
 import com.brokerage.brokerageapi.service.OrderService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,31 +19,36 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/orders")
+@PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
 @AllArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
 
-    @PreAuthorize("hasRole('ADMIN') or #customerId == authentication.name")
-    @GetMapping
-    public List<Order> getOrders(@RequestParam Long customerId, @AuthenticationPrincipal UserDetails user) {
-        boolean isAdmin = user.getAuthorities().stream()
-                              .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        return orderService.listOrders(customerId, isAdmin, user.getUsername());
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or #request.customerId == authentication.name")
     @PostMapping
-    public Order createOrder(@RequestBody OrderRequest request) {
-        return orderService.createOrder(request);
+    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
+        Order order = orderService.createOrder(request);
+        return ResponseEntity.ok(new OrderResponse(order));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
-    @DeleteMapping("/{id}")
-    public void cancelOrder(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
-        orderService.cancelOrder(id, user.getUsername());
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getOrders(@RequestParam Long customerId,
+                                                         @RequestParam(required = false, defaultValue = "false") boolean isAdmin,
+                                                         @RequestParam(required = false, defaultValue = "") String requester) {
+        List<Order> orders = orderService.listOrders(customerId, isAdmin, requester);
+        List<OrderResponse> response = orders.stream().map(OrderResponse::new).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<Void> cancelOrder(@PathVariable Long orderId,
+                                            @RequestParam(required = false, defaultValue = "") String requester) {
+        orderService.cancelOrder(orderId, requester);
+        return ResponseEntity.ok().build();
     }
 }
+

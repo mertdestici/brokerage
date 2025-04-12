@@ -4,7 +4,7 @@ import com.brokerage.brokerageapi.model.Asset;
 import com.brokerage.brokerageapi.model.Customer;
 import com.brokerage.brokerageapi.repository.AssetRepository;
 import com.brokerage.brokerageapi.repository.CustomerRepository;
-import com.brokerage.brokerageapi.service.CustomerDetailsServiceImpl;
+import com.brokerage.brokerageapi.service.CustomerService;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -21,15 +21,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final CustomerDetailsServiceImpl customerDetailsService;
+    private final CustomerService customerService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,8 +37,6 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -49,7 +45,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(customerDetailsService);
+        authProvider.setUserDetailsService(customerService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }

@@ -11,7 +11,7 @@ import java.util.Date;
 
 @Service
 public class JwtTokenService {
-    private static final String SECRET_KEY = "very_secret_key_12345678901234567890123456789012";
+    private static final String SECRET_KEY = "secret_key";
     private static final long EXPIRATION = 3600000;
 
     public String generateToken(UserDetails userDetails) {
@@ -21,13 +21,13 @@ public class JwtTokenService {
                                               .map(GrantedAuthority::getAuthority).toList())
                    .setIssuedAt(new Date())
                    .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                   .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
+                   .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
                    .compact();
     }
 
     public String extractUsername(String token) {
         return Jwts.parserBuilder()
-                   .setSigningKey(SECRET_KEY.getBytes())
+                   .setSigningKey(Keys.secretKeyFor(SignatureAlgorithm.HS256))
                    .build()
                    .parseClaimsJws(token)
                    .getBody()

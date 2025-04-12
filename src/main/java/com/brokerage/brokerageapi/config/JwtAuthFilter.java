@@ -1,5 +1,5 @@
 package com.brokerage.brokerageapi.config;
-import com.brokerage.brokerageapi.service.CustomerDetailsServiceImpl;
+import com.brokerage.brokerageapi.service.CustomerService;
 import com.brokerage.brokerageapi.service.JwtTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,7 +20,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private JwtTokenService jwtTokenService;
-    private CustomerDetailsServiceImpl customerDetailsService;
+    private CustomerService customerService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -39,7 +39,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         username = jwtTokenService.extractUsername(jwt);
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = customerDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = customerService.loadUserByUsername(username);
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

@@ -1,9 +1,6 @@
 package com.brokerage.brokerageapi.controller;
 
-import com.brokerage.brokerageapi.model.Customer;
-import com.brokerage.brokerageapi.model.Order;
-import com.brokerage.brokerageapi.model.OrderSide;
-import com.brokerage.brokerageapi.model.OrderStatus;
+import com.brokerage.brokerageapi.model.*;
 import com.brokerage.brokerageapi.repository.CustomerRepository;
 import com.brokerage.brokerageapi.repository.OrderRepository;
 import com.brokerage.brokerageapi.service.JwtTokenService;
@@ -44,18 +41,17 @@ public class OrderControllerIntegrationTest {
         orderRepo.deleteAll();
 
         Customer customer = new Customer();
-        customer.setId("cust1");
         customer.setUsername("user1");
         customer.setPassword(passwordEncoder.encode("pass"));
         customer.setAdmin(false);
         customerRepo.save(customer);
 
         Order order = new Order();
-        order.setCustomerId("cust1");
-        order.setAssetName("AAPL");
+        order.setCustomer(customer);
+        order.setAsset(Asset.builder().assetName("TRY").size(1000L).usableSize(1000L).build());
         order.setOrderSide(OrderSide.BUY);
-        order.setSize(10);
-        order.setPrice(5.0);
+        order.setSize(10L);
+        order.setPrice(5L);
         order.setStatus(OrderStatus.PENDING);
         orderRepo.save(order);
 

@@ -1,7 +1,7 @@
 package com.brokerage.brokerageapi.controller;
 
 import com.brokerage.brokerageapi.model.Customer;
-import com.brokerage.brokerageapi.model.NewCustomerRequest;
+import com.brokerage.brokerageapi.request.NewCustomerRequest;
 import com.brokerage.brokerageapi.service.CustomerService;
 import com.brokerage.brokerageapi.service.JwtTokenService;
 import lombok.AllArgsConstructor;

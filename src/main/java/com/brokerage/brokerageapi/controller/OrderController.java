@@ -28,14 +28,14 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    @PreAuthorize("hasRole('ADMIN') or #request.customerId == authentication.name")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
         Order order = orderService.createOrder(request);
         return ResponseEntity.ok(new OrderResponse(order));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getOrders(@RequestParam Long customerId,
                                                          @AuthenticationPrincipal UserDetails user) {

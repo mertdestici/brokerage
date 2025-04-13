@@ -1,4 +1,4 @@
-package com.brokerage.brokerageapi.model;
+package com.brokerage.brokerageapi.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

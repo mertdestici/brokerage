@@ -1,5 +1,6 @@
 package com.brokerage.brokerageapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ public class Customer {
     @GeneratedValue
     private Long id;
     private String username;
+    @JsonIgnore
     private String password;
     private boolean isAdmin;
 

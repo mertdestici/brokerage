@@ -2,10 +2,10 @@ package com.brokerage.brokerageapi.controller;
 
 import com.brokerage.brokerageapi.config.JwtAuthFilter;
 import com.brokerage.brokerageapi.config.SecurityConfig;
+import com.brokerage.brokerageapi.model.Asset;
 import com.brokerage.brokerageapi.model.Customer;
 import com.brokerage.brokerageapi.model.Order;
 import com.brokerage.brokerageapi.model.OrderSide;
-import com.brokerage.brokerageapi.model.OrderStatus;
 import com.brokerage.brokerageapi.repository.AssetRepository;
 import com.brokerage.brokerageapi.repository.CustomerRepository;
 import com.brokerage.brokerageapi.request.OrderRequest;
@@ -13,127 +13,185 @@ import com.brokerage.brokerageapi.service.CustomerService;
 import com.brokerage.brokerageapi.service.JwtTokenService;
 import com.brokerage.brokerageapi.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ExtendWith(SpringExtension.class)
 @WebMvcTest(OrderController.class)
+@AutoConfigureMockMvc
 @Import(SecurityConfig.class)
 public class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private OrderService orderService;
-
-    @MockBean
+    @MockitoBean
     private JwtTokenService jwtTokenService;
 
-    @MockBean
-    private JwtAuthFilter jwtAuthFilter;
-
-    @MockBean
+    @MockitoBean
     private CustomerService customerService;
 
-    @MockBean
+    @Mock
+    private JwtAuthFilter jwtAuthFilter;
+
+    @MockitoBean
+    private OrderService orderService;
+
+    @MockitoBean
     private CustomerRepository customerRepository;
 
-    @MockBean
+    @MockitoBean
     private AssetRepository assetRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    private Order sampleOrder;
-
-    private String token;
-
-    public String getToken(){
-        return token;
-    }
-
-    @BeforeEach
-    void setUp() {
-        Customer customer = new Customer();
-        customer.setId(1L);
-        customer.setUsername("user1");
-
-        sampleOrder = new Order();
-        sampleOrder.setId(1L);
-        sampleOrder.setCustomer(customer);
-        sampleOrder.setOrderSide(OrderSide.BUY);
-        sampleOrder.setPrice(100L);
-        sampleOrder.setSize(10L);
-        sampleOrder.setStatus(OrderStatus.PENDING);
-        sampleOrder.setCreateDate(LocalDateTime.now());
-
-        token = Jwts.builder()
-                .setSubject(customer.getUsername())
-                .claim("roles", "ADMIN")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3000))
-                .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
-                .compact();
-    }
-
     @Test
-    void testCreateOrder() throws Exception {
-        OrderRequest request = new OrderRequest(1L, "TRY", OrderSide.BUY, 10L, 100L);
+    @WithMockUser(username = "user")
+    void createOrderWhenCustomerIdMatchesShouldReturnOk() throws Exception {
+        OrderRequest request = new OrderRequest();
+        request.setCustomerId(1L);
+        request.setAssetName("TRY");
+        request.setSize(10L);
 
-        when(orderService.createOrder(request)).thenReturn(sampleOrder);
+        Order mockOrder = Order.builder()
+                .id(1L)
+                .customer(Customer.builder()
+                        .id(1L)
+                        .username("user")
+                        .build())
+                .orderSide(OrderSide.BUY)
+                .size(10L)
+                .price(10L)
+                .asset(Asset.builder()
+                        .assetName("TRY")
+                        .build())
+                .build();
 
-        MvcResult result = mockMvc.perform(post("/orders")
-                        .header("Authorization", "Bearer " + getToken())
+
+        when(orderService.createOrder(request)).thenReturn(mockOrder);
+
+        mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andReturn();
-
-        System.out.println(result.getResponse().getContentAsString());
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.side").value("BUY"))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.customer.username").value("user"));
     }
 
     @Test
-    @WithMockUser(username = "user1")
+    @WithMockUser(username = "user")
+    void createOrderWhenCustomerIdDoesNotMatchOrNotAdminShouldReturnForbidden() throws Exception {
+        OrderRequest request = new OrderRequest();
+        request.setCustomerId(1L);
+        request.setAssetName("TRY");
+        request.setSize(10L);
+
+        when(orderService.createOrder(request)).thenThrow(new AccessDeniedException("You are not allowed to create order for this customer."));
+
+        mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void createOrderWhenThereIsNoUserShouldReturnForbidden() throws Exception {
+        OrderRequest request = new OrderRequest();
+        request.setCustomerId(Long.getLong("1"));
+
+        mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void createOrderAsAdminShouldReturnOk() throws Exception {
+        OrderRequest request = new OrderRequest();
+        request.setCustomerId(1L);
+        request.setAssetName("TRY");
+        request.setSize(10L);
+
+        Order mockOrder = Order.builder()
+                .id(1L)
+                .customer(Customer.builder()
+                        .id(2L)
+                        .username("user")
+                        .build())
+                .orderSide(OrderSide.BUY)
+                .size(10L)
+                .price(10L)
+                .asset(Asset.builder()
+                        .assetName("TRY")
+                        .build())
+                .build();
+
+        Mockito.when(orderService.createOrder(request)).thenReturn(mockOrder);
+
+        mockMvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.side").value("BUY"))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.customer.username").value("user"));
+    }
+
+    @Test
+    @WithMockUser(username = "user")
     void testGetOrders() throws Exception {
-        when(orderService.listOrders(eq(1L), eq(false), eq("user1"))).thenReturn(List.of(sampleOrder));
+        Order mockOrder = Order.builder()
+                .id(1L)
+                .customer(Customer.builder()
+                        .id(1L)
+                        .username("user")
+                        .build())
+                .orderSide(OrderSide.BUY)
+                .size(10L)
+                .price(10L)
+                .asset(Asset.builder()
+                        .assetName("TRY")
+                        .build())
+                .build();
 
-        mockMvc.perform(get("/orders")
-                        .param("customerId", "1"))
+        when(orderService.listOrders(eq(1L), eq(false), eq("user"))).thenReturn(List.of(mockOrder));
+
+        mockMvc.perform(get("/orders").param("customerId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].orderSide").value("BUY"));
+                .andExpect(jsonPath("$[0].side").value("BUY"));
     }
 
     @Test
-    @WithMockUser(username = "user1")
+    @WithMockUser(username = "user")
     void testCancelOrder() throws Exception {
-        doNothing().when(orderService).cancelOrder(1L, "user1");
+        doNothing().when(orderService).cancelOrder(1L, "user");
 
         mockMvc.perform(delete("/orders/1"))
                 .andExpect(status().isOk());
 
-        verify(orderService, times(1)).cancelOrder(1L, "user1");
+        verify(orderService, times(1)).cancelOrder(1L, "user");
     }
 }

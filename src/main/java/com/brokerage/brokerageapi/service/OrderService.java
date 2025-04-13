@@ -12,6 +12,8 @@ import com.brokerage.brokerageapi.request.OrderRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
@@ -28,8 +30,16 @@ public class OrderService {
     private final OrderRepository orderRepository;
 
     public Order createOrder(OrderRequest request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Customer customer = customerRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !request.getCustomerId().equals(customer.getId())) {
+            throw new AccessDeniedException("You are not allowed to create order for this customer.");
+        }
 
         Asset asset = assetRepository.findByCustomerAndAssetName(customer, request.getAssetName())
                 .orElseThrow(() -> new RuntimeException("Asset not found"));
@@ -87,10 +97,10 @@ public class OrderService {
     }
 
     public List<Order> listOrders(Long customerId, boolean isAdmin, String requester) {
-        Customer customer = customerRepository.findById(customerId)
+        Customer customer = customerRepository.findByUsername(requester)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        if (!isAdmin && !customer.getUsername().equals(requester)) {
+        if (!isAdmin && !customer.getId().equals(customerId)) {
             throw new AccessDeniedException("You can only access your own orders.");
         }
 

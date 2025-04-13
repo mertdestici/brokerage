@@ -1,0 +1,216 @@
+{
+	"info": {
+		"_postman_id": "771ee7b2-d3bf-4007-bc7a-099fee567639",
+		"name": "Brokerage API",
+		"description": "Postman collection for Brokerage Spring Boot API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9106743"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "admin123",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"newuser1\",\r\n    \"password\": \"newpass1\",\r\n    \"assetSize\": 1000\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/newCustomer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"newCustomer"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST http://localhost:8080/customers/register \\\r\n  -H \"Content-Type: application/json\" \\\r\n  -d '{\r\n    \"username\": \"newuser\",\r\n    \"password\": \"newpass\"\r\n}'\r\n"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerId\": 3,\n  \"assetName\": \"TRY\",\n  \"orderSide\": \"BUY\",\n  \"size\": 10,\n  \"price\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders?customerId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Order",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assets",
+			"item": [
+				{
+					"name": "List Customer Assets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/assets?customerId=2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"assets"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "2"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		}
+	]
+}
